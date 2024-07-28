@@ -1,0 +1,353 @@
+// Interface for all smart devices
+interface Device {
+    void update();
+    String getStatus();
+    int getId();
+    String getType();
+}
+
+// Concrete class representing a light device
+class Light implements Device {
+    private int id;
+    private boolean isOn;
+
+    public Light(int id) {
+        this.id = id;
+        this.isOn = false;
+    }
+
+    public void turnOn() {
+        isOn = true;
+        update();
+    }
+
+    public void turnOff() {
+        isOn = false;
+        update();
+    }
+
+    @Override
+    public void update() {
+        System.out.println("Light " + id + " is " + (isOn ? "On" : "Off"));
+    }
+
+    @Override
+    public String getStatus() {
+        return "Light " + id + " is " + (isOn ? "On" : "Off");
+    }
+
+    @Override
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public String getType() {
+        return "light";
+    }
+}
+
+// Concrete class representing a thermostat device
+class Thermostat implements Device {
+    private int id;
+    private int temperature;
+
+    public Thermostat(int id) {
+        this.id = id;
+        this.temperature = 70;
+    }
+
+    public void setTemperature(int temperature) {
+        this.temperature = temperature;
+        update();
+    }
+
+    @Override
+    public void update() {
+        System.out.println("Thermostat " + id + " is set to " + temperature + " degrees");
+    }
+
+    @Override
+    public String getStatus() {
+        return "Thermostat " + id + " is set to " + temperature + " degrees";
+    }
+
+    @Override
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public String getType() {
+        return "thermostat";
+    }
+
+    public int getTemperature() {
+        return temperature;
+    }
+}
+
+// Concrete class representing a door lock device
+class Door implements Device {
+    private int id;
+    private boolean isLocked;
+
+    public Door(int id) {
+        this.id = id;
+        this.isLocked = true;
+    }
+
+    public void lock() {
+        isLocked = true;
+        update();
+    }
+
+    public void unlock() {
+        isLocked = false;
+        update();
+    }
+
+    @Override
+    public void update() {
+        System.out.println("Door " + id + " is " + (isLocked ? "Locked" : "Unlocked"));
+    }
+
+    @Override
+    public String getStatus() {
+        return "Door " + id + " is " + (isLocked ? "Locked" : "Unlocked"));
+    }
+
+    @Override
+    public int getId() {
+        return id;
+    }
+
+    @Override
+    public String getType() {
+        return "door";
+    }
+}
+
+// Interface for the observer
+interface Observer {
+    void notify(Device device);
+}
+
+// Concrete class representing the central hub, which acts as an observer and manages devices
+class HomeHub implements Observer {
+    private Map<Integer, Device> devices;
+    private List<ScheduledTask> scheduledTasks;
+    private List<Trigger> triggers;
+
+    public HomeHub() {
+        devices = new HashMap<>();
+        scheduledTasks = new ArrayList<>();
+        triggers = new ArrayList<>();
+    }
+
+    public void addDevice(Device device) {
+        devices.put(device.getId(), device);
+        device.update();
+    }
+
+    public void removeDevice(int id) {
+        devices.remove(id);
+    }
+
+    public void turnOn(int id) {
+        Device device = devices.get(id);
+        if (device instanceof Light) {
+            ((Light) device).turnOn();
+        } else if (device instanceof Door) {
+            ((Door) device).unlock();
+        }
+    }
+
+    public void turnOff(int id) {
+        Device device = devices.get(id);
+        if (device instanceof Light) {
+            ((Light) device).turnOff();
+        } else if (device instanceof Door) {
+            ((Door) device).lock();
+        }
+    }
+
+    public void setTemperature(int id, int temperature) {
+        Device device = devices.get(id);
+        if (device instanceof Thermostat) {
+            ((Thermostat) device).setTemperature(temperature);
+            checkTriggers((Thermostat) device);
+        }
+    }
+
+    public void setSchedule(int id, String time, String command) {
+        scheduledTasks.add(new ScheduledTask(id, time, command));
+    }
+
+    public void addTrigger(String condition, String operator, int value, String action) {
+        triggers.add(new Trigger(condition, operator, value, action));
+    }
+
+    public void viewStatus() {
+        for (Device device : devices.values()) {
+            System.out.println(device.getStatus());
+        }
+    }
+
+    public void viewScheduledTasks() {
+        for (ScheduledTask task : scheduledTasks) {
+            System.out.println(task);
+        }
+    }
+
+    public void viewTriggers() {
+        for (Trigger trigger : triggers) {
+            System.out.println(trigger);
+        }
+    }
+
+    @Override
+    public void notify(Device device) {
+        device.update();
+    }
+
+    private void checkTriggers(Thermostat thermostat) {
+        for (Trigger trigger : triggers) {
+            if (trigger.getCondition().equals("temperature") && 
+                trigger.getOperator().equals(">") && 
+                thermostat.getTemperature() > trigger.getValue()) {
+                
+                String action = trigger.getAction();
+                if (action.startsWith("turnOff(")) {
+                    int id = Integer.parseInt(action.substring(8, action.length() - 1));
+                    turnOff(id);
+                }
+            }
+        }
+    }
+}
+
+// Class representing a scheduled task
+class ScheduledTask {
+    private int deviceId;
+    private String time;
+    private String command;
+
+    public ScheduledTask(int deviceId, String time, String command) {
+        this.deviceId = deviceId;
+        this.time = time;
+        this.command = command;
+    }
+
+    @Override
+    public String toString() {
+        return "ScheduledTask [deviceId=" + deviceId + ", time=" + time + ", command=" + command + "]";
+    }
+}
+
+// Class representing an automated task trigger
+class Trigger {
+    private String condition;
+    private String operator;
+    private int value;
+    private String action;
+
+    public Trigger(String condition, String operator, int value, String action) {
+        this.condition = condition;
+        this.operator = operator;
+        this.value = value;
+        this.action = action;
+    }
+
+    public String getCondition() {
+        return condition;
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public int getValue() {
+        return value;
+    }
+
+    public String getAction() {
+        return action;
+    }
+
+    @Override
+    public String toString() {
+        return "Trigger [condition=" + condition + ", operator=" + operator + ", value=" + value + ", action=" + action + "]";
+    }
+}
+
+// Factory Method to create instances of smart devices
+class DeviceFactory {
+    public static Device createDevice(int id, String type) {
+        switch (type.toLowerCase()) {
+            case "light":
+                return new Light(id);
+            case "thermostat":
+                return new Thermostat(id);
+            case "door":
+                return new Door(id);
+            default:
+                throw new IllegalArgumentException("Unknown device type");
+        }
+    }
+}
+
+// Proxy class for controlling access to devices
+class DeviceProxy implements Device {
+    private Device device;
+
+    public DeviceProxy(Device device) {
+        this.device = device;
+    }
+
+    @Override
+    public void update() {
+        device.update();
+    }
+
+    @Override
+    public String getStatus() {
+        return device.getStatus();
+    }
+
+    @Override
+    public int getId() {
+        return device.getId();
+    }
+
+    @Override
+    public String getType() {
+        return device.getType();
+    }
+}
+
+// Main class containing the main method to run the application
+public class SmartHomeSystem {
+    public static void main(String[] args) {
+        HomeHub hub = new HomeHub();
+
+        Device light1 = DeviceFactory.createDevice(1, "light");
+        Device thermostat1 = DeviceFactory.createDevice(2, "thermostat");
+        Device door1 = DeviceFactory.createDevice(3, "door");
+
+        hub.addDevice(light1);
+        hub.addDevice(thermostat1);
+        hub.addDevice(door1);
+
+        hub.turnOn(1);
+        hub.setTemperature(2, 80);
+        hub.turnOff(1);
+
+        hub.setSchedule(2, "06:00", "Turn On");
+        hub.addTrigger("temperature", ">", 75, "turnOff(1)");
+
+        hub.viewStatus();
+        hub.viewScheduledTasks();
+        hub.viewTriggers();
+    }
+}
